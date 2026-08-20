@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时脚本 - Roblox游戏辅助脚本</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #08080E;
+            --surface: rgba(255,255,255,0.02);
+            --surface-hover: rgba(255,255,255,0.05);
+            --border: rgba(255,255,255,0.06);
+            --text: #F0F0F5;
+            --text-dim: #8888A0;
+            --primary: #7C3AED;
+            --primary-light: #A78BFA;
+            --accent: #00D2FF;
+            --radius: 16px;
+            --ease: cubic-bezier(0.16, 1, 0.3, 1);
+            --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            perspective: 1000px;
+        }
+
+        .cursor-glow {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(124,58,237,0.12), transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+            transition: all 0.3s var(--ease);
+            transform: translate(-50%, -50%);
+        }
+
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: 0;
+            pointer-events: none;
+            animation: gridShift 20s linear infinite;
+        }
+
+        @keyframes gridShift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(60px, 60px); }
+        }
+
+        .particle {
+            position: fixed;
+            width: 2px;
+            height: 2px;
+            background: var(--primary-light);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            animation: particleFloat 10s var(--ease) infinite;
+        }
+
+        @keyframes particleFloat {
+            0% { opacity: 0; transform: translateY(100vh) scale(0); }
+            15% { opacity: 0.8; }
+            85% { opacity: 0.2; }
+            100% { opacity: 0; transform: translateY(-10vh) scale(2); }
+        }
+
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            height: 68px;
+            background: rgba(8, 8, 14, 0.7);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            animation: navDrop 0.8s var(--ease);
+        }
+
+        @keyframes navDrop {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text);
+            transition: transform 0.5s var(--spring);
+        }
+
+        .nav-brand:hover {
+            transform: scale(1.05);
+        }
+
+        .nav-brand img {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            object-fit: cover;
+            transition: all 0.5s var(--spring);
+        }
+
+        .nav-brand:hover img {
+            transform: rotate(8deg) scale(1.15);
+            box-shadow: 0 0 25px rgba(124,58,237,0.5);
+        }
+
+        .nav-brand span {
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2px;
+        }
+
+        .nav-links a {
+            padding: 9px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: var(--text-dim);
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.4s var(--spring);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-links a::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(0,210,255,0.1));
+            opacity: 0;
+            transition: opacity 0.4s var(--ease);
+        }
+
+        .nav-links a:hover::before {
+            opacity: 1;
+        }
+
+        .nav-links a:hover {
+            color: var(--text);
+            transform: translateY(-2px);
+        }
+
+        .nav-links a.active {
+            color: var(--primary-light);
+            background: rgba(124,58,237,0.1);
+        }
+
+        .nav-cta {
+            padding: 10px 22px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), #6D28D9);
+            color: #FFFFFF;
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.4s var(--spring);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-cta::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s var(--ease);
+        }
+
+        .nav-cta:hover::after {
+            transform: translateX(100%);
+        }
+
+        .nav-cta:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(124,58,237,0.4);
+        }
+
+        .main {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 40px 0 60px;
+            animation: heroIn 1s var(--ease);
+            transform-style: preserve-3d;
+        }
+
+        @keyframes heroIn {
+            from { opacity: 0; transform: translateY(50px) rotateX(10deg); }
+            to { opacity: 1; transform: translateY(0) rotateX(0); }
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: rgba(124,58,237,0.12);
+            border: 1px solid rgba(124,58,237,0.3);
+            border-radius: 50px;
+            color: var(--primary-light);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            animation: pulse 3s var(--ease) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0.3); }
+            50% { box-shadow: 0 0 0 10px rgba(124,58,237,0); }
+        }
+
+        .hero-logo {
+            width: 100px;
+            height: 100px;
+            border-radius: 24px;
+            object-fit: cover;
+            margin-bottom: 28px;
+            box-shadow: 0 0 60px rgba(124,58,237,0.4);
+            animation: logoFloat 5s var(--ease) infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(3deg); }
+        }
+
+        .hero h1 {
+            font-size: 52px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 14px;
+            background: linear-gradient(135deg, #FFFFFF, #A78BFA, #00D2FF);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: textShimmer 4s linear infinite;
+        }
+
+        @keyframes textShimmer {
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .hero p {
+            font-size: 16px;
+            color: var(--text-dim);
+            max-width: 500px;
+            margin: 0 auto 32px;
+            line-height: 1.7;
+            letter-spacing: 0.3px;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 30px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.4s var(--spring);
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #6D28D9);
+            color: #FFFFFF;
+            box-shadow: 0 8px 30px rgba(124,58,237,0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 16px 45px rgba(124,58,237,0.5);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--primary-light);
+            transform: translateY(-4px) scale(1.05);
+            background: rgba(124,58,237,0.08);
+        }
+
+        .code-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            margin-bottom: 24px;
+            transition: all 0.5s var(--ease);
+            animation: slideUp 0.7s var(--ease);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .code-card:hover {
+            background: var(--surface-hover);
+            border-color: rgba(124,58,237,0.3);
+            transform: translateY(-6px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+        .code-card h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .code-card p {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-bottom: 14px;
+        }
+
+        .code-box {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #C9D1D9;
+            overflow-x: auto;
+            word-break: break-all;
+            margin-bottom: 14px;
+            transition: all 0.4s var(--ease);
+        }
+
+        .code-box:hover {
+            border-color: rgba(124,58,237,0.5);
+            box-shadow: 0 0 25px rgba(124,58,237,0.15);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .feature-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 22px;
+            transition: all 0.5s var(--spring);
+            animation: slideUp 0.6s var(--ease);
+        }
+
+        .feature-item:nth-child(1) { animation-delay: 0.05s; }
+        .feature-item:nth-child(2) { animation-delay: 0.1s; }
+        .feature-item:nth-child(3) { animation-delay: 0.15s; }
+        .feature-item:nth-child(4) { animation-delay: 0.2s; }
+        .feature-item:nth-child(5) { animation-delay: 0.25s; }
+        .feature-item:nth-child(6) { animation-delay: 0.3s; }
+
+        .feature-item:hover {
+            background: var(--surface-hover);
+            border-color: rgba(124,58,237,0.35);
+            transform: translateY(-8px) scale(1.03);
+            box-shadow: 0 15px 45px rgba(0,0,0,0.35);
+        }
+
+        .feature-item h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            transition: color 0.3s var(--ease);
+        }
+
+        .feature-item:hover h3 {
+            color: var(--primary-light);
+        }
+
+        .feature-item p {
+            font-size: 12px;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+
+        .team-row {
+            display: flex;
+            justify-content: center;
+            gap: 36px;
+            flex-wrap: wrap;
+        }
+
+        .team-person {
+            text-align: center;
+            transition: all 0.5s var(--spring);
+        }
+
+        .team-person:hover {
+            transform: translateY(-8px) scale(1.08);
+        }
+
+        .team-person img {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(124,58,237,0.5);
+            margin-bottom: 8px;
+            transition: all 0.5s var(--spring);
+        }
+
+        .team-person:hover img {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 30px rgba(124,58,237,0.5);
+            transform: scale(1.15) rotate(5deg);
+        }
+
+        .team-person .name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .team-person .role {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .cmd-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 12px;
+            transition: all 0.5s var(--spring);
+            animation: slideUp 0.6s var(--ease);
+        }
+
+        .cmd-item:hover {
+            background: var(--surface-hover);
+            border-color: rgba(124,58,237,0.35);
+            transform: translateX(8px);
+        }
+
+        .cmd-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .cmd-header span {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .cmd-tag {
+            font-size: 10px;
+            padding: 3px 10px;
+            border-radius: 50px;
+            background: rgba(124,58,237,0.15);
+            color: var(--primary-light);
+            transition: all 0.4s var(--spring);
+            cursor: pointer;
+        }
+
+        .cmd-tag:hover {
+            transform: scale(1.2) rotate(-5deg);
+            background: rgba(124,58,237,0.3);
+        }
+
+        .cmd-item .code-box {
+            margin-bottom: 10px;
+        }
+
+        .copy-btn {
+            padding: 8px 18px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary), #6D28D9);
+            color: #FFFFFF;
+            border: none;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.35s var(--spring);
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-2px) scale(1.06);
+            box-shadow: 0 8px 25px rgba(124,58,237,0.4);
+        }
+
+        /* 吉祥物 */
+        .mascot {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 72px;
+            height: 72px;
+            z-index: 200;
+            cursor: grab;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            transition: transform 0.5s var(--spring);
+            animation: mascotAppear 0.8s var(--ease);
+        }
+
+        @keyframes mascotAppear {
+            from { opacity: 0; transform: scale(0) translateY(40px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .mascot:hover { transform: scale(1.1); }
+        .mascot.dragging { cursor: grabbing; transform: scale(1.2); transition: none; }
+
+        .mascot img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+            border: 3px solid var(--primary);
+        }
+
+        .mascot-meow {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translate(-50%, 0);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-light);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .mascot-meow.show {
+            animation: meowPop 1.2s var(--spring) forwards;
+        }
+
+        @keyframes meowPop {
+            0% { opacity: 0; transform: translate(-50%, 15px) scale(0.3); }
+            25% { opacity: 1; transform: translate(-50%, 0) scale(1.3); }
+            50% { transform: translate(-50%, -8px) scale(0.9); }
+            75% { transform: translate(-50%, 0) scale(1.05); }
+            100% { opacity: 0; transform: translate(-50%, -25px) scale(1); }
+        }
+
+        @media (max-width: 768px) {
+            .navbar { padding: 0 16px; }
+            .nav-links { display: none; }
+            .features-grid { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 32px; }
+            .hero-logo { width: 72px; height: 72px; }
+            .mascot { width: 56px; height: 56px; bottom: 16px; right: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="cursor-glow" id="cursorGlow"></div>
+
+    <nav class="navbar">
+        <a href="#" class="nav-brand">
+            <img src="https://imgs.li/uploads/20260814/f133a3bfb12d3abd6e2c59400358ee8b.jpg" alt="Logo">
+            <span>时脚本</span>
+        </a>
+        <div class="nav-links">
+            <a href="#" class="active">首页</a>
+            <a href="#code">脚本加载</a>
+            <a href="#features">功能</a>
+            <a href="#team">团队</a>
+            <a href="#commands">指令库</a>
+        </div>
+        <button class="nav-cta" onclick="copyMainScript()">复制脚本</button>
+    </nav>
+
+    <main class="main">
+        <section class="hero">
+            <span class="hero-badge">ROBLOX 辅助脚本</span>
+            <img src="https://imgs.li/uploads/20260814/f133a3bfb12d3abd6e2c59400358ee8b.jpg" alt="时脚本" class="hero-logo">
+            <h1>时脚本</h1>
+            <p>极致流畅的游戏辅助体验，公开源码，持续更新。</p>
+            <div class="hero-actions">
+                <button class="btn btn-primary" onclick="copyMainScript()">复制加载代码</button>
+                <a href="https://github.com/CAT85-eng/-" target="_blank" class="btn btn-ghost">查看公开仓库</a>
+            </div>
+        </section>
+
+        <section class="code-card" id="code">
+            <h2>脚本加载代码</h2>
+            <p>复制以下代码到 Roblox 执行器中运行：</p>
+            <div class="code-box">loadstring(game:HttpGet("https://raw.githubusercontent.com/CAT85-eng/-/main/%E6%9B%B4%E6%96%B0.lua"))()</div>
+            <button class="copy-btn" onclick="copyMainScript()">复制代码</button>
+        </section>
+
+        <section id="features">
+            <div class="features-grid">
+                <div class="feature-item"><h3>自动化操作</h3><p>自动点击、滑动、长按，解放双手。</p></div>
+                <div class="feature-item"><h3>智能识别</h3><p>精准识别屏幕元素，智能判断时机。</p></div>
+                <div class="feature-item"><h3>定时任务</h3><p>自定义时间执行，循环不间断。</p></div>
+                <div class="feature-item"><h3>公用指令库</h3><p>内置常用指令，快速开发脚本。</p></div>
+                <div class="feature-item"><h3>公开源码</h3><p>完全透明，自由修改分享。</p></div>
+                <div class="feature-item"><h3>持续更新</h3><p>不断优化，保持稳定。</p></div>
+            </div>
+        </section>
+
+        <section class="code-card" id="team">
+            <h2 style="text-align:center;margin-bottom:20px;">团队成员</h2>
+            <div class="team-row">
+                <div class="team-person">
+                    <img src="https://imgs.li/uploads/20260819/5f00049bb60a7dafac25c84e4e744a2d.jpg" alt="原作者">
+                    <div class="name">原作者</div>
+                    <div class="role">脚本开发</div>
+                </div>
+                <div class="team-person">
+                    <img src="https://imgs.li/uploads/20260819/d1152758a687b43a3b9224b757256eae.jpg" alt="支持者">
+                    <div class="name">支持者</div>
+                    <div class="role">项目支持</div>
+                </div>
+                <div class="team-person">
+                    <img src="https://imgs.li/uploads/20260819/c60e38c09fb94b9e82cdee2f7f7fb675.jpg" alt="网站维护">
+                    <div class="name">网站维护</div>
+                    <div class="role">官网运营</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="commands">
+            <div class="cmd-item">
+                <div class="cmd-header"><span>点击指令</span><span class="cmd-tag">基础</span></div>
+                <div class="code-box">tap(x, y)</div>
+                <button class="copy-btn" onclick="copyCode(this)">复制代码</button>
+            </div>
+            <div class="cmd-item">
+                <div class="cmd-header"><span>滑动指令</span><span class="cmd-tag">基础</span></div>
+                <div class="code-box">swipe(x1, y1, x2, y2, duration)</div>
+                <button class="copy-btn" onclick="copyCode(this)">复制代码</button>
+            </div>
+            <div class="cmd-item">
+                <div class="cmd-header"><span>等待指令</span><span class="cmd-tag">控制</span></div>
+                <div class="code-box">sleep(1000)</div>
+                <button class="copy-btn" onclick="copyCode(this)">复制代码</button>
+            </div>
+            <div class="cmd-item">
+                <div class="cmd-header"><span>找图指令</span><span class="cmd-tag">识别</span></div>
+                <div class="code-box">findImage("目标.png")</div>
+                <button class="copy-btn" onclick="copyCode(this)">复制代码</button>
+            </div>
+            <div class="cmd-item">
+                <div class="cmd-header"><span>循环指令</span><span class="cmd-tag">控制</span></div>
+                <div class="code-box">for i = 1, 10 do -- 执行内容 end</div>
+                <button class="copy-btn" onclick="copyCode(this)">复制代码</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- 吉祥物 -->
+    <div class="mascot" id="mascot">
+        <span class="mascot-meow" id="meowText">喵</span>
+        <img src="https://imgs.li/uploads/20260819/f0ddea4654206edab38fe3cbfa3e5a05.jpg" alt="吉祥物">
+    </div>
+
+    <script>
+        const mainScript = 'loadstring(game:HttpGet("https://raw.githubusercontent.com/CAT85-eng/-/main/%E6%9B%B4%E6%96%B0.lua"))()';
+
+        const glow = document.getElementById('cursorGlow');
+        document.addEventListener('mousemove', (e) => {
+            glow.style.left = e.clientX + 'px';
+            glow.style.top = e.clientY + 'px';
+        });
+
+        for (let i = 0; i < 30; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.animationDelay = Math.random() * 10 + 's';
+            p.style.animationDuration = (6 + Math.random() * 8) + 's';
+            p.style.width = (1 + Math.random() * 3) + 'px';
+            p.style.height = p.style.width;
+            document.body.appendChild(p);
+        }
+
+        function copyMainScript() {
+            navigator.clipboard.writeText(mainScript).then(() => {
+                const btns = document.querySelectorAll('.nav-cta, .btn-primary');
+                btns.forEach(btn => {
+                    btn.textContent = '已复制';
+                    setTimeout(() => {
+                        btn.textContent = btn.classList.contains('nav-cta') ? '复制脚本' : '复制加载代码';
+                    }, 1500);
+                });
+            });
+        }
+
+        function copyCode(btn) {
+            const codeBox = btn.previousElementSibling;
+            const text = codeBox.innerText || codeBox.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                btn.textContent = '已复制';
+                setTimeout(() => btn.textContent = '复制代码', 1500);
+            });
+        }
+
+        (function() {
+            const mascot = document.getElementById('mascot');
+            const meowText = document.getElementById('meowText');
+            let isDragging = false;
+            let startX, startY, startLeft, startTop;
+
+            function getPos(e) {
+                if (e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                return { x: e.clientX, y: e.clientY };
+            }
+
+            function onStart(e) {
+                e.preventDefault();
+                isDragging = true;
+                mascot.classList.add('dragging');
+                const pos = getPos(e);
+                startX = pos.x;
+                startY = pos.y;
+                const rect = mascot.getBoundingClientRect();
+                startLeft = rect.left;
+                startTop = rect.top;
+            }
+
+            function onMove(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                const pos = getPos(e);
+                let newLeft = startLeft + (pos.x - startX);
+                let newTop = startTop + (pos.y - startY);
+                const mw = mascot.offsetWidth;
+                const mh = mascot.offsetHeight;
+                newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - mw));
+                newTop = Math.max(0, Math.min(newTop, window.innerHeight - mh));
+                mascot.style.left = newLeft + 'px';
+                mascot.style.top = newTop + 'px';
+                mascot.style.bottom = 'auto';
+                mascot.style.right = 'auto';
+            }
+
+            function onEnd() {
+                isDragging = false;
+                mascot.classList.remove('dragging');
+            }
+
+            mascot.addEventListener('click', function() {
+                meowText.classList.remove('show');
+                void meowText.offsetWidth;
+                meowText.classList.add('show');
+            });
+
+            mascot.addEventListener('mousedown', onStart);
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onEnd);
+            mascot.addEventListener('touchstart', onStart, { passive: false });
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('touchend', onEnd);
+        })();
+    </script>
+</body>
+</html>
